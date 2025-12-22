@@ -12,11 +12,21 @@
 
 ## 快速开始
 
-### Windows
+### 方式一：独立应用（推荐）
+
+**无需安装 Python 环境，开箱即用**
+
+1. 从 [Releases](https://github.com/cookiesen77-rgb/cx-auto-complete/releases) 下载对应平台的应用包
+2. 解压后运行可执行文件
+3. 浏览器自动打开 http://127.0.0.1:8080
+
+### 方式二：源码运行
+
+**Windows**
 
 双击运行 `web_start.bat`，浏览器自动打开 http://127.0.0.1:8080
 
-### macOS / Linux
+**macOS / Linux**
 
 ```bash
 chmod +x web_start.sh
@@ -96,6 +106,25 @@ submit = true
 ```bash
 pip install -r requirements.txt
 ```
+
+## 打包应用
+
+将项目打包成独立可执行文件：
+
+**Windows**
+```bash
+build_app.bat
+```
+
+**macOS / Linux**
+```bash
+chmod +x build_app.sh
+./build_app.sh
+```
+
+打包完成后，应用位于 `dist/超星学习通/` 目录，可直接分发给其他用户使用。
+
+详细说明请查看 [BUILD.md](BUILD.md)
 
 ## 免责声明
 
