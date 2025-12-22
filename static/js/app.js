@@ -214,6 +214,16 @@ function handleStatusUpdate(data) {
             showTaskRunningUI(data.data.total);
             break;
             
+        case 'task_stopping':
+            // 显示正在停止状态
+            showTaskStoppingUI();
+            break;
+            
+        case 'task_stopped':
+            AppState.isTaskRunning = false;
+            showTaskStoppedUI();
+            break;
+            
         case 'task_completed':
             AppState.isTaskRunning = false;
             showTaskCompletedUI();
@@ -258,9 +268,18 @@ function showTaskRunningUI(total) {
     showToast('任务已开始', 'success');
 }
 
-function showTaskCompletedUI() {
+function showTaskStoppingUI() {
+    // 禁用停止按钮，显示正在停止
+    DOM.stopTaskBtn.disabled = true;
+    DOM.stopTaskBtn.querySelector('.btn-text').textContent = 'STOPPING...';
+    showToast('正在停止，等待当前章节完成...', 'warning');
+}
+
+function showTaskStoppedUI() {
     DOM.startTaskBtn.classList.remove('hidden');
     DOM.stopTaskBtn.classList.add('hidden');
+    DOM.stopTaskBtn.disabled = false;
+    DOM.stopTaskBtn.querySelector('.btn-text').textContent = 'STOP';
     
     // 恢复课程选择
     document.querySelectorAll('.course-item').forEach(item => {
@@ -271,12 +290,32 @@ function showTaskCompletedUI() {
     DOM.selectAllBtn.disabled = false;
     DOM.deselectAllBtn.disabled = false;
     
-    showToast('🎉 所有任务已完成！', 'success');
+    showToast('任务已停止', 'info');
+}
+
+function showTaskCompletedUI() {
+    DOM.startTaskBtn.classList.remove('hidden');
+    DOM.stopTaskBtn.classList.add('hidden');
+    DOM.stopTaskBtn.disabled = false;
+    DOM.stopTaskBtn.querySelector('.btn-text').textContent = 'STOP';
+    
+    // 恢复课程选择
+    document.querySelectorAll('.course-item').forEach(item => {
+        item.style.pointerEvents = '';
+        item.style.opacity = '';
+    });
+    
+    DOM.selectAllBtn.disabled = false;
+    DOM.deselectAllBtn.disabled = false;
+    
+    showToast('所有任务已完成！', 'success');
 }
 
 function showTaskErrorUI(error) {
     DOM.startTaskBtn.classList.remove('hidden');
     DOM.stopTaskBtn.classList.add('hidden');
+    DOM.stopTaskBtn.disabled = false;
+    DOM.stopTaskBtn.querySelector('.btn-text').textContent = 'STOP';
     
     // 恢复课程选择
     document.querySelectorAll('.course-item').forEach(item => {

@@ -225,9 +225,13 @@ class WebTaskManager:
             }
             
             total_courses = len(courses)
+            stopped_by_user = False
+            
             for idx, course in enumerate(courses, 1):
+                # 检查停止标志
                 if self.should_stop:
                     self._emit_log("warning", "任务已被用户停止")
+                    stopped_by_user = True
                     break
                 
                 course_title = course.get('title', '未知课程')
@@ -242,8 +246,20 @@ class WebTaskManager:
                 try:
                     # 包装 process_course 来捕获进度
                     self._process_course_with_logging(course, task_config)
+                    
+                    # 课程完成后再次检查停止标志
+                    if self.should_stop:
+                        self._emit_log("warning", "任务已被用户停止")
+                        stopped_by_user = True
+                        break
+                        
                     self._emit_log("success", f"课程 '{course_title}' 学习完成")
                 except Exception as e:
+                    # 检查是否是用户停止导致的异常
+                    if self.should_stop:
+                        self._emit_log("warning", "任务已被用户停止")
+                        stopped_by_user = True
+                        break
                     self._emit_log("error", f"课程 '{course_title}' 学习失败: {e}")
                     traceback.print_exc()
                 
@@ -254,8 +270,12 @@ class WebTaskManager:
                     "percent": int(idx / total_courses * 100)
                 })
             
-            self._emit_log("success", "所有任务执行完成!")
-            self._emit_status("task_completed")
+            if stopped_by_user:
+                self._emit_log("info", "任务已停止")
+                self._emit_status("task_stopped")
+            else:
+                self._emit_log("success", "所有任务执行完成!")
+                self._emit_status("task_completed")
             
         except Exception as e:
             self._emit_log("error", f"任务执行异常: {e}")
@@ -263,6 +283,7 @@ class WebTaskManager:
             self._emit_status("task_error", {"error": str(e)})
         finally:
             self.task_running = False
+            self.should_stop = False
     
     def _process_course_with_logging(self, course: Dict, config: Dict):
         """带日志的课程处理"""
@@ -282,7 +303,9 @@ class WebTaskManager:
         """停止当前任务"""
         if self.task_running:
             self.should_stop = True
-            self._emit_log("warning", "正在停止任务...")
+            self._emit_log("warning", "正在停止任务，请等待当前章节完成...")
+            # 立即通知前端状态变化
+            self._emit_status("task_stopping")
             return {"success": True, "message": "正在停止任务"}
         return {"success": False, "message": "没有运行中的任务"}
     

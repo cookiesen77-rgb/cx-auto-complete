@@ -202,7 +202,7 @@
                 <form id="aiConfigForm">
                     <div class="form-group">
                         <label for="aiProvider">题库类型</label>
-                        <select id="aiProvider" class="form-select">
+                        <select id="aiProvider" class="form-control form-select">
                             <option value="AI">AI (OpenAI 兼容)</option>
                             <option value="SiliconFlow">SiliconFlow (硅基流动)</option>
                             <option value="TikuYanxi">TikuYanxi (言溪题库)</option>
@@ -212,27 +212,27 @@
                     </div>
                     <div class="form-group">
                         <label for="aiEndpoint">API Endpoint</label>
-                        <input type="text" id="aiEndpoint" placeholder="https://api.openai.com/v1">
+                        <input type="text" id="aiEndpoint" class="form-control" placeholder="https://api.openai.com/v1">
                         <span class="form-hint">OpenAI 兼容接口地址</span>
                     </div>
                     <div class="form-group">
                         <label for="aiKey">API Key</label>
-                        <input type="password" id="aiKey" placeholder="sk-xxxxxxxx">
-                        <span class="form-hint">你的 API 密钥</span>
+                        <input type="password" id="aiKey" class="form-control" placeholder="sk-xxxxxxxx">
+                        <span class="form-hint">你的 API 密钥（仅本地保存）</span>
                     </div>
                     <div class="form-group">
                         <label for="aiModel">模型名称</label>
-                        <input type="text" id="aiModel" placeholder="gpt-4o-mini">
+                        <input type="text" id="aiModel" class="form-control" placeholder="gpt-4o-mini">
                         <span class="form-hint">例如: gpt-4o-mini, deepseek-chat</span>
                     </div>
                     <div class="form-row">
                         <div class="form-group half">
-                            <label for="aiInterval">请求间隔 (秒)</label>
-                            <input type="number" id="aiInterval" value="3" min="0" max="30">
+                            <label for="aiInterval">请求间隔（秒）</label>
+                            <input type="number" id="aiInterval" class="form-control" value="3" min="0" max="30">
                         </div>
                         <div class="form-group half">
                             <label for="aiCoverRate">覆盖率阈值</label>
-                            <input type="number" id="aiCoverRate" value="0.9" min="0" max="1" step="0.1">
+                            <input type="number" id="aiCoverRate" class="form-control" value="0.9" min="0" max="1" step="0.1">
                         </div>
                     </div>
                     <div class="form-group submit-toggle">
@@ -248,16 +248,12 @@
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-outline" id="testAiConfigBtn">
-                    <span class="btn-text">🔌 TEST</span>
-                    <span class="btn-loader"></span>
+                <button type="button" class="btn btn-outline" id="testAiConfigBtn">
+                    🔌 TEST
                 </button>
                 <div class="footer-spacer"></div>
-                <button class="btn btn-outline" id="cancelAiConfigBtn">CANCEL</button>
-                <button class="btn btn-primary" id="saveAiConfigBtn">
-                    <span class="btn-text">SAVE</span>
-                    <span class="btn-loader"></span>
-                </button>
+                <button type="button" class="btn btn-outline" id="cancelAiConfigBtn">CANCEL</button>
+                <button type="button" class="btn btn-primary" id="saveAiConfigBtn">SAVE</button>
             </div>
         </div>
     </div>
