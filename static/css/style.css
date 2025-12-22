@@ -912,9 +912,14 @@ input::placeholder {
     gap: var(--spacing-md);
 }
 
+.toggle-row .toggle-label {
+    flex-shrink: 0;
+}
+
 .toggle-desc {
     font-size: 13px;
     color: var(--text-secondary);
+    flex: 1;
 }
 
 /* ============ Toast Notifications ============ */

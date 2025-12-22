@@ -146,8 +146,9 @@ cookies.txt
 .config.ini
 config.ini
 chaoxing.log
-config*.ini
 .chaoxing.log
+# 忽略所有config开头的ini，但保留模板文件
+!config_template.ini
 ./config.ini
 ./chaoxing.log
 ./cookies.txt
