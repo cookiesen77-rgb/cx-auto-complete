@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>超星学习通 · 自动化助手</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- 背景装饰 -->
+    <div class="bg-decoration">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+        <div class="grid-pattern"></div>
+    </div>
+
+    <div class="app-container">
+        <!-- 头部 -->
+        <header class="app-header">
+            <div class="logo">
+                <span class="logo-icon">⚡</span>
+                <span class="logo-text">超星学习通</span>
+                <span class="logo-badge">Web</span>
+            </div>
+            <div class="header-status" id="connectionStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">连接中...</span>
+            </div>
+        </header>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 左侧面板 - 控制区 -->
+            <aside class="control-panel">
+                <!-- 登录卡片 -->
+                <section class="card login-card" id="loginSection">
+                    <div class="card-header">
+                        <h2>账号登录</h2>
+                        <span class="card-icon">🔐</span>
+                    </div>
+                    <div class="card-body">
+                        <form id="loginForm">
+                            <div class="form-group">
+                                <label for="username">手机号</label>
+                                <input type="text" id="username" placeholder="请输入11位手机号" maxlength="11" autocomplete="off">
+                            </div>
+                            <div class="form-group">
+                                <label for="password">密码</label>
+                                <input type="password" id="password" placeholder="请输入登录密码" autocomplete="off">
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
+                                <span class="btn-text">登 录</span>
+                                <span class="btn-loader"></span>
+                            </button>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- 用户信息卡片 (登录后显示) -->
+                <section class="card user-card hidden" id="userSection">
+                    <div class="card-header">
+                        <h2>已登录</h2>
+                        <span class="card-icon">✅</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="user-info">
+                            <div class="avatar">👤</div>
+                            <div class="user-details">
+                                <span class="user-name" id="userName">-</span>
+                                <span class="user-status">在线</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-outline btn-block" id="refreshCoursesBtn">
+                            <span>🔄</span> 刷新课程列表
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 任务设置卡片 -->
+                <section class="card settings-card hidden" id="settingsSection">
+                    <div class="card-header">
+                        <h2>任务设置</h2>
+                        <span class="card-icon">⚙️</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="setting-item">
+                            <label>播放速度</label>
+                            <div class="speed-selector">
+                                <button class="speed-btn" data-speed="1">1x</button>
+                                <button class="speed-btn active" data-speed="1.5">1.5x</button>
+                                <button class="speed-btn" data-speed="2">2x</button>
+                            </div>
+                        </div>
+                        <div class="setting-item">
+                            <label>答题模式</label>
+                            <div class="toggle-group">
+                                <input type="checkbox" id="autoSubmit" class="toggle-input">
+                                <label for="autoSubmit" class="toggle-label">
+                                    <span class="toggle-switch"></span>
+                                    <span class="toggle-text">自动提交</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="setting-info">
+                            <span class="info-icon">💡</span>
+                            <span>关闭自动提交时，答案仅保存不提交</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 任务控制卡片 -->
+                <section class="card action-card hidden" id="actionSection">
+                    <div class="card-body">
+                        <button class="btn btn-success btn-block btn-lg" id="startTaskBtn" disabled>
+                            <span class="btn-icon">▶</span>
+                            <span class="btn-text">开始学习</span>
+                        </button>
+                        <button class="btn btn-danger btn-block hidden" id="stopTaskBtn">
+                            <span class="btn-icon">⏹</span>
+                            <span class="btn-text">停止任务</span>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- AI 配置按钮 -->
+                <section class="card ai-config-btn-card">
+                    <div class="card-body">
+                        <button class="btn btn-outline btn-block" id="openAiConfigBtn">
+                            <span>🤖</span> AI 答题配置
+                        </button>
+                    </div>
+                </section>
+            </aside>
+
+            <!-- 中间区域 - 课程列表 -->
+            <section class="courses-panel">
+                <div class="panel-header">
+                    <h2>📚 课程列表</h2>
+                    <div class="panel-actions">
+                        <button class="btn btn-sm" id="selectAllBtn" disabled>全选</button>
+                        <button class="btn btn-sm" id="deselectAllBtn" disabled>取消全选</button>
+                        <span class="selected-count" id="selectedCount">已选: 0</span>
+                    </div>
+                </div>
+                <div class="courses-container" id="coursesContainer">
+                    <div class="empty-state" id="emptyState">
+                        <div class="empty-icon">📖</div>
+                        <p>请先登录账号</p>
+                        <p class="empty-hint">登录后将自动获取课程列表</p>
+                    </div>
+                    <div class="loading-state hidden" id="loadingState">
+                        <div class="spinner"></div>
+                        <p>正在加载课程...</p>
+                    </div>
+                    <div class="courses-list hidden" id="coursesList"></div>
+                </div>
+            </section>
+
+            <!-- 右侧面板 - 日志和进度 -->
+            <aside class="log-panel">
+                <!-- 进度卡片 -->
+                <section class="card progress-card hidden" id="progressSection">
+                    <div class="card-header">
+                        <h2>任务进度</h2>
+                        <span class="progress-percent" id="progressPercent">0%</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="progressBar" style="width: 0%"></div>
+                        </div>
+                        <div class="progress-info">
+                            <span class="current-course" id="currentCourse">等待开始...</span>
+                            <span class="course-count" id="courseCount">0/0</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 日志卡片 -->
+                <section class="card log-card">
+                    <div class="card-header">
+                        <h2>运行日志</h2>
+                        <button class="btn btn-sm btn-ghost" id="clearLogBtn">清空</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="log-container" id="logContainer">
+                            <div class="log-entry log-info">
+                                <span class="log-time">--:--:--</span>
+                                <span class="log-message">系统初始化中...</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+        </main>
+
+    </div>
+
+    <!-- Toast 通知 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- AI 配置弹窗 -->
+    <div class="modal-overlay hidden" id="aiConfigModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>🤖 AI 答题配置</h3>
+                <button class="modal-close" id="closeAiConfigBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="aiConfigForm">
+                    <div class="form-group">
+                        <label for="aiProvider">题库类型</label>
+                        <select id="aiProvider" class="form-select">
+                            <option value="AI">AI (OpenAI 兼容)</option>
+                            <option value="SiliconFlow">SiliconFlow (硅基流动)</option>
+                            <option value="TikuYanxi">TikuYanxi (言溪题库)</option>
+                            <option value="TikuLike">TikuLike (LIKE知识库)</option>
+                            <option value="TikuAdapter">TikuAdapter</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="aiEndpoint">API Endpoint</label>
+                        <input type="text" id="aiEndpoint" placeholder="https://api.openai.com/v1">
+                        <span class="form-hint">OpenAI 兼容接口地址，需包含 /v1</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="aiKey">API Key</label>
+                        <input type="password" id="aiKey" placeholder="sk-xxxxxxxx">
+                        <span class="form-hint">你的 API 密钥</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="aiModel">模型名称</label>
+                        <input type="text" id="aiModel" placeholder="gpt-4o-mini">
+                        <span class="form-hint">例如: gpt-4o-mini, deepseek-chat</span>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group half">
+                            <label for="aiInterval">请求间隔 (秒)</label>
+                            <input type="number" id="aiInterval" value="3" min="0" max="30">
+                        </div>
+                        <div class="form-group half">
+                            <label for="aiCoverRate">覆盖率阈值</label>
+                            <input type="number" id="aiCoverRate" value="0.9" min="0" max="1" step="0.1">
+                        </div>
+                    </div>
+                    <div class="form-group submit-toggle">
+                        <label>答案提交</label>
+                        <div class="toggle-row">
+                            <input type="checkbox" id="aiSubmit" class="toggle-input" checked>
+                            <label for="aiSubmit" class="toggle-label">
+                                <span class="toggle-switch"></span>
+                            </label>
+                            <span class="toggle-desc">达到覆盖率自动提交</span>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="testAiConfigBtn">
+                    <span class="btn-text">🔌 测试连接</span>
+                    <span class="btn-loader"></span>
+                </button>
+                <div class="footer-spacer"></div>
+                <button class="btn btn-outline" id="cancelAiConfigBtn">取消</button>
+                <button class="btn btn-primary" id="saveAiConfigBtn">
+                    <span class="btn-text">保存配置</span>
+                    <span class="btn-loader"></span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
