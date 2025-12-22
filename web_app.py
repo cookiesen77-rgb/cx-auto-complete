@@ -57,7 +57,7 @@ def is_frozen():
 if is_frozen():
     socketio = SocketIO(app, cors_allowed_origins="*")
 else:
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 
 class WebTaskManager:
@@ -274,8 +274,8 @@ class WebTaskManager:
                 self._emit_log("info", "任务已停止")
                 self._emit_status("task_stopped")
             else:
-                self._emit_log("success", "所有任务执行完成!")
-                self._emit_status("task_completed")
+            self._emit_log("success", "所有任务执行完成!")
+            self._emit_status("task_completed")
             
         except Exception as e:
             self._emit_log("error", f"任务执行异常: {e}")
@@ -555,6 +555,12 @@ def api_save_ai_config():
             config.set('tiku', 'submit', str(data['submit']).lower())
         if 'cover_rate' in data:
             config.set('tiku', 'cover_rate', str(data['cover_rate']))
+        
+        # 确保 true_list 和 false_list 存在（判断题必需）
+        if not config.has_option('tiku', 'true_list'):
+            config.set('tiku', 'true_list', '正确,对,√,是')
+        if not config.has_option('tiku', 'false_list'):
+            config.set('tiku', 'false_list', '错误,错,×,否,不对,不正确')
         
         # 保存配置文件
         with open(config_path, 'w', encoding='utf8') as f:

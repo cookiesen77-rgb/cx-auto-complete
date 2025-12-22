@@ -174,10 +174,11 @@ class Tiku:
             self.config_set(self._get_conf())
         if not self.DISABLE:
             # 设置提交模式
-            self.SUBMIT = True if self._conf['submit'] == 'true' else False
-            self.COVER_RATE = float(self._conf['cover_rate'])
-            self.true_list = self._conf['true_list'].split(',')
-            self.false_list = self._conf['false_list'].split(',')
+            self.SUBMIT = True if self._conf.get('submit', 'false') == 'true' else False
+            self.COVER_RATE = float(self._conf.get('cover_rate', '0.9'))
+            # 使用 get 方法提供默认值，防止 KeyError
+            self.true_list = self._conf.get('true_list', '正确,对,√,是').split(',')
+            self.false_list = self._conf.get('false_list', '错误,错,×,否,不对,不正确').split(',')
             # 调用自定义题库初始化
             self._init_tiku()
 
