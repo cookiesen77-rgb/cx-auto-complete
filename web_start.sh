@@ -4,7 +4,7 @@ cd "$(dirname "$0")"
 
 echo ""
 echo "  超星学习通 Web 可视化界面"
-echo "  访问地址: http://127.0.0.1:8080"
+echo "  访问地址: http://127.0.0.1:7002"
 echo ""
 
 if [ -d "venv" ]; then

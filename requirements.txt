@@ -7,6 +7,7 @@ loguru>=0.7.3
 celery>=5.5.3
 flask>=3.1.2
 flask-socketio>=5.3.6
+eventlet>=0.40.4
 fonttools>=4.60.1
 openai>=1.109.1
 ddddocr
