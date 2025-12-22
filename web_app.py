@@ -48,16 +48,8 @@ def require_auth(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# 检测是否为打包环境
-def is_frozen():
-    return getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
-
-# 根据环境选择 async_mode
-# 打包环境不指定 async_mode（自动选择），开发环境使用 threading
-if is_frozen():
-    socketio = SocketIO(app, cors_allowed_origins="*")
-else:
-    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+# 初始化 SocketIO（不指定 async_mode，让库自动选择最佳模式）
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 
 class WebTaskManager:
