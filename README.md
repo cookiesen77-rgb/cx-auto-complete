@@ -12,53 +12,63 @@
 
 ## 快速开始
 
-### 方式一：独立应用（推荐）
+### Windows 用户
 
-**无需安装 Python 环境，开箱即用**
+1. 下载或克隆本项目
+2. 双击运行 `start.bat`
+3. 首次运行会自动创建虚拟环境并安装依赖
+4. 浏览器自动打开 http://127.0.0.1:7002
 
-1. 从 [Releases](https://github.com/cookiesen77-rgb/cx-auto-complete/releases) 下载对应平台的应用包
-2. 解压后运行可执行文件
-3. 浏览器自动打开 http://127.0.0.1:8080
+### macOS 用户
 
-### 方式二：源码运行
+1. 下载或克隆本项目
+2. 双击运行 `start.command`（首次需要右键 → 打开）
+3. 首次运行会自动创建虚拟环境并安装依赖
+4. 浏览器自动打开 http://127.0.0.1:7002
 
-**Windows**
-
-双击运行 `web_start.bat`，浏览器自动打开 http://127.0.0.1:8080
-
-**macOS / Linux**
+### Linux 用户
 
 ```bash
-chmod +x web_start.sh
-./web_start.sh
+chmod +x start.sh
+./start.sh
 ```
 
-浏览器访问 http://127.0.0.1:8080
+## 访问密码
+
+首次访问需要输入密码：`314394`
 
 ## 使用方法
 
 1. 启动 Web 界面
-2. 输入手机号和密码登录
-3. 选择要学习的课程
-4. 配置 AI 答题（可选）
-5. 点击「开始学习」
+2. 输入访问密码进入
+3. 输入手机号和密码登录学习通
+4. 选择要学习的课程
+5. 配置 AI 答题（可选）
+6. 点击「开始学习」
 
 ## AI 答题配置
 
-点击界面左下角「AI 答题配置」按钮，支持：
+点击界面「AI CONFIG」按钮，支持：
 
 | 类型 | 说明 |
 |------|------|
 | AI (OpenAI 兼容) | 支持 OpenAI、DeepSeek、通义千问等兼容接口 |
-| SiliconFlow | 硅基流动 AI 服务 |
+| SiliconFlow | 硅基流动 AI 服务（推荐，有免费额度） |
 | TikuYanxi | 言溪题库 |
 | TikuLike | LIKE 知识库 |
 | TikuAdapter | 开源题库适配器 |
 
+### 推荐配置（硅基流动）
+
+1. 访问 https://cloud.siliconflow.cn/ 注册账号
+2. 获取 API Key
+3. 在 AI 配置中选择 `SiliconFlow`
+4. 填入 API Key，模型选择 `deepseek-ai/DeepSeek-V3.2`
+
 ## 命令行模式
 
 ```bash
-# 直接运行
+# 激活虚拟环境后运行
 python main.py
 
 # 配置文件运行
@@ -80,11 +90,11 @@ speed = 2
 jobs = 4
 
 [tiku]
-provider = AI
-endpoint = https://api.openai.com/v1
-key = sk-xxx
-model = gpt-4o-mini
+provider = SiliconFlow
+siliconflow_key = your-api-key
+siliconflow_model = deepseek-ai/DeepSeek-V3.2
 submit = true
+cover_rate = 0.9
 ```
 
 ## 项目结构
@@ -98,33 +108,37 @@ submit = true
 │   └── decode.py       # 页面解析
 ├── templates/          # Web 模板
 ├── static/             # 前端资源
+├── start.bat           # Windows 启动脚本
+├── start.command       # macOS 启动脚本
+├── start.sh            # Linux 启动脚本
 └── config_template.ini # 配置模板
 ```
 
-## 依赖安装
+## 依赖安装（手动）
 
 ```bash
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
+python web_app.py
 ```
 
-## 打包应用
+## 常见问题
 
-将项目打包成独立可执行文件：
+### Q: 启动时提示 "未检测到 Python"
+A: 请先安装 Python 3.9 或更高版本，访问 https://www.python.org/downloads/
 
-**Windows**
+### Q: 依赖安装失败
+A: 检查网络连接，或尝试使用国内镜像：
 ```bash
-build_app.bat
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
-**macOS / Linux**
-```bash
-chmod +x build_app.sh
-./build_app.sh
-```
+### Q: macOS 提示 "无法打开，因为无法验证开发者"
+A: 右键点击 `start.command` → 选择「打开」→ 点击「打开」
 
-打包完成后，应用位于 `dist/超星学习通/` 目录，可直接分发给其他用户使用。
-
-详细说明请查看 [BUILD.md](BUILD.md)
+### Q: Windows 提示 "Windows 保护了你的电脑"
+A: 点击「更多信息」→「仍要运行」
 
 ## 免责声明
 

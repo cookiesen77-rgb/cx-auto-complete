@@ -57,7 +57,7 @@ def is_frozen():
 if is_frozen():
     socketio = SocketIO(app, cors_allowed_origins="*")
 else:
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 
 class WebTaskManager:
@@ -274,8 +274,8 @@ class WebTaskManager:
                 self._emit_log("info", "任务已停止")
                 self._emit_status("task_stopped")
             else:
-            self._emit_log("success", "所有任务执行完成!")
-            self._emit_status("task_completed")
+                self._emit_log("success", "所有任务执行完成!")
+                self._emit_status("task_completed")
             
         except Exception as e:
             self._emit_log("error", f"任务执行异常: {e}")
