@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>访问验证 - 超星学习通助手</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        /* 验证页面专属样式 */
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-secondary);
+        }
+        
+        .auth-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 20px;
+        }
+        
+        .auth-card {
+            background: var(--bg-color);
+            border: 3px solid var(--border-color);
+            box-shadow: var(--pixel-shadow);
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .auth-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 24px;
+            background: var(--bg-secondary);
+            border: 3px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+        }
+        
+        .auth-title {
+            font-family: var(--font-pixel);
+            font-size: 14px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+        
+        .auth-subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-bottom: 32px;
+        }
+        
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .auth-input-group {
+            position: relative;
+        }
+        
+        .auth-input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 3px solid var(--border-color);
+            background: var(--bg-color);
+            font-size: 16px;
+            color: var(--text-primary);
+            text-align: center;
+            letter-spacing: 8px;
+            font-family: var(--font-mono);
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        
+        .auth-input:focus {
+            border-color: var(--accent-color);
+        }
+        
+        .auth-input::placeholder {
+            letter-spacing: normal;
+            color: var(--text-muted);
+        }
+        
+        .auth-btn {
+            padding: 14px 24px;
+            background: var(--text-primary);
+            color: var(--bg-color);
+            border: 3px solid var(--border-color);
+            font-family: var(--font-pixel);
+            font-size: 12px;
+            cursor: pointer;
+            box-shadow: var(--pixel-shadow);
+            transition: all 0.1s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .auth-btn:hover {
+            background: var(--accent-color);
+            color: white;
+        }
+        
+        .auth-btn:active {
+            transform: translate(4px, 4px);
+            box-shadow: none;
+        }
+        
+        .auth-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .auth-error {
+            color: var(--danger-color);
+            font-size: 13px;
+            margin-top: 8px;
+            min-height: 20px;
+            font-family: var(--font-pixel);
+            font-size: 10px;
+        }
+        
+        .auth-footer {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 2px dashed var(--border-light);
+            color: var(--text-muted);
+            font-size: 12px;
+        }
+        
+        .auth-footer a {
+            color: var(--accent-color);
+            text-decoration: none;
+        }
+        
+        .auth-footer a:hover {
+            text-decoration: underline;
+        }
+        
+        /* 加载动画 */
+        .auth-btn.loading {
+            position: relative;
+            color: transparent;
+        }
+        
+        .auth-btn.loading::after {
+            content: "...";
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--bg-color);
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        /* 像素装饰 */
+        .pixel-decoration {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 24px;
+        }
+        
+        .pixel-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--border-color);
+        }
+        
+        .pixel-dot:nth-child(2) {
+            background: var(--accent-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="pixel-decoration">
+                <div class="pixel-dot"></div>
+                <div class="pixel-dot"></div>
+                <div class="pixel-dot"></div>
+            </div>
+            
+            <div class="auth-icon">🔐</div>
+            
+            <h1 class="auth-title">ACCESS REQUIRED</h1>
+            <p class="auth-subtitle">请输入访问密码以继续</p>
+            
+            <form class="auth-form" id="authForm">
+                <div class="auth-input-group">
+                    <input 
+                        type="password" 
+                        class="auth-input" 
+                        id="passwordInput"
+                        placeholder="••••••"
+                        maxlength="20"
+                        autocomplete="off"
+                        autofocus
+                    >
+                </div>
+                
+                <button type="submit" class="auth-btn" id="submitBtn">
+                    VERIFY
+                </button>
+                
+                <div class="auth-error" id="errorMsg"></div>
+            </form>
+            
+            <div class="auth-footer">
+                <p>超星学习通自动化助手</p>
+                <p><a href="https://github.com/cookiesen77-rgb/cx-auto-complete" target="_blank">GitHub</a></p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const form = document.getElementById('authForm');
+        const passwordInput = document.getElementById('passwordInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const errorMsg = document.getElementById('errorMsg');
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const password = passwordInput.value.trim();
+            if (!password) {
+                errorMsg.textContent = 'PLEASE ENTER PASSWORD';
+                passwordInput.focus();
+                return;
+            }
+            
+            // 禁用按钮，显示加载状态
+            submitBtn.disabled = true;
+            submitBtn.classList.add('loading');
+            errorMsg.textContent = '';
+            
+            try {
+                const response = await fetch('/api/auth', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ password })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // 验证成功，跳转到主页
+                    window.location.href = '/';
+                } else {
+                    // 验证失败
+                    errorMsg.textContent = 'INVALID PASSWORD';
+                    passwordInput.value = '';
+                    passwordInput.focus();
+                }
+            } catch (error) {
+                errorMsg.textContent = 'CONNECTION ERROR';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('loading');
+            }
+        });
+        
+        // 回车提交
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                form.dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>
+

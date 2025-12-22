@@ -1,11 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""
-超星学习通 Web 可视化界面
-提供登录、课程选择、任务执行的可视化管理
-"""
-
 import os
 import sys
 import json
@@ -13,10 +8,12 @@ import threading
 import time
 import queue
 import traceback
+import hashlib
+import functools
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 import configparser
 from flask_socketio import SocketIO, emit
 
@@ -31,8 +28,36 @@ from main import load_config_from_file, process_course
 
 # 创建 Flask 应用
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'chaoxing-web-secret-key-2024'
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+app.config['SECRET_KEY'] = 'chaoxing-web-secret-key-2024-secure-random'
+app.config['PERMANENT_SESSION_LIFETIME'] = 86400  # Session 有效期 24 小时
+
+# ============ 前置密码验证 ============
+# 密码哈希（SHA256）- 原密码: 314394
+ACCESS_PASSWORD_HASH = hashlib.sha256("314394".encode()).hexdigest()
+
+def require_auth(f):
+    """验证装饰器 - 保护需要密码验证的路由"""
+    @functools.wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('authenticated'):
+            # API 请求返回 JSON 错误
+            if request.path.startswith('/api/'):
+                return jsonify({"success": False, "message": "请先完成密码验证", "auth_required": True}), 401
+            # 页面请求重定向到验证页
+            return redirect(url_for('auth_page'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# 检测是否为打包环境
+def is_frozen():
+    return getattr(sys, 'frozen', False) and hasattr(sys, '_MEIPASS')
+
+# 根据环境选择 async_mode
+# 打包环境不指定 async_mode（自动选择），开发环境使用 threading
+if is_frozen():
+    socketio = SocketIO(app, cors_allowed_origins="*")
+else:
+    socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 
 class WebTaskManager:
@@ -277,13 +302,51 @@ task_manager = WebTaskManager()
 
 # ============ 路由 ============
 
+@app.route('/auth')
+def auth_page():
+    """密码验证页面"""
+    if session.get('authenticated'):
+        return redirect(url_for('index'))
+    return render_template('auth.html')
+
+
+@app.route('/api/auth', methods=['POST'])
+def api_auth():
+    """密码验证接口"""
+    data = request.json
+    password = data.get('password', '').strip()
+    
+    if not password:
+        time.sleep(1)  # 防止暴力破解
+        return jsonify({"success": False, "message": "请输入访问密码"})
+    
+    # 验证密码哈希
+    input_hash = hashlib.sha256(password.encode()).hexdigest()
+    if input_hash == ACCESS_PASSWORD_HASH:
+        session['authenticated'] = True
+        session.permanent = True
+        return jsonify({"success": True, "message": "验证成功"})
+    else:
+        time.sleep(2)  # 失败延迟，防止暴力破解
+        return jsonify({"success": False, "message": "密码错误"})
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+def api_logout():
+    """退出验证"""
+    session.clear()
+    return jsonify({"success": True, "message": "已退出"})
+
+
 @app.route('/')
+@require_auth
 def index():
     """主页"""
     return render_template('index.html')
 
 
 @app.route('/api/login', methods=['POST'])
+@require_auth
 def api_login():
     """登录接口"""
     data = request.json
@@ -298,6 +361,7 @@ def api_login():
 
 
 @app.route('/api/courses', methods=['GET'])
+@require_auth
 def api_get_courses():
     """获取课程列表"""
     result = task_manager.get_courses()
@@ -305,6 +369,7 @@ def api_get_courses():
 
 
 @app.route('/api/task/start', methods=['POST'])
+@require_auth
 def api_start_task():
     """开始任务"""
     data = request.json
@@ -317,6 +382,7 @@ def api_start_task():
 
 
 @app.route('/api/task/stop', methods=['POST'])
+@require_auth
 def api_stop_task():
     """停止任务"""
     result = task_manager.stop_task()
@@ -324,6 +390,7 @@ def api_stop_task():
 
 
 @app.route('/api/status', methods=['GET'])
+@require_auth
 def api_status():
     """获取状态"""
     result = task_manager.get_status()
@@ -331,6 +398,7 @@ def api_status():
 
 
 @app.route('/api/config/ai', methods=['GET'])
+@require_auth
 def api_get_ai_config():
     """获取 AI 配置"""
     config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.ini')
@@ -369,6 +437,7 @@ def api_get_ai_config():
 
 
 @app.route('/api/config/ai/test', methods=['POST'])
+@require_auth
 def api_test_ai_config():
     """测试 AI API 连接"""
     try:
@@ -420,6 +489,7 @@ def api_test_ai_config():
 
 
 @app.route('/api/config/ai', methods=['POST'])
+@require_auth
 def api_save_ai_config():
     """保存 AI 配置"""
     config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'config.ini')
@@ -495,15 +565,15 @@ def open_browser():
     """延迟打开浏览器"""
     import webbrowser
     time.sleep(1)  # 等待服务器启动
-    webbrowser.open('http://127.0.0.1:8080')
+    webbrowser.open('http://127.0.0.1:7002')
 
 if __name__ == '__main__':
     print("=" * 50)
     print("  超星学习通 Web 可视化界面")
-    print("  访问地址: http://127.0.0.1:8080")
+    print("  访问地址: http://127.0.0.1:7002")
     print("=" * 50)
     
     # 自动打开浏览器
     threading.Thread(target=open_browser, daemon=True).start()
     
-    socketio.run(app, host='0.0.0.0', port=8080, debug=False, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=7002, debug=False, allow_unsafe_werkzeug=True)
