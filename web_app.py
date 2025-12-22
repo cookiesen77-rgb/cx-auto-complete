@@ -101,6 +101,33 @@ class WebTaskManager:
         """发送状态更新到前端"""
         socketio.emit('status', {"status": status, "data": data or {}})
     
+    def _on_video_progress(self, data: Dict):
+        """视频进度回调 - 发送到Web前端"""
+        try:
+            progress_type = data.get("type", "")
+            name = data.get("name", "")
+            duration = data.get("duration", 0)
+            play_time = data.get("play_time", 0)
+            percent = data.get("percent", 0)
+            
+            # 格式化时间显示
+            def format_time(seconds):
+                m, s = divmod(int(seconds), 60)
+                return f"{m:02d}:{s:02d}"
+            
+            if progress_type == "video_start":
+                self._emit_log("info", f"▶ 开始播放: {name} ({format_time(play_time)}/{format_time(duration)})")
+            elif progress_type == "video_progress":
+                # 构建进度条
+                bar_len = 20
+                filled = int(bar_len * percent / 100)
+                bar = "█" * filled + "░" * (bar_len - filled)
+                self._emit_log("info", f"📹 {name}: [{bar}] {percent}% ({format_time(play_time)}/{format_time(duration)})")
+            elif progress_type == "video_complete":
+                self._emit_log("success", f"✅ 完成: {name}")
+        except Exception as e:
+            pass  # 忽略进度回调错误，不影响主流程
+    
     def login(self, username: str, password: str) -> Dict:
         """执行登录"""
         try:
@@ -118,8 +145,13 @@ class WebTaskManager:
             # 获取查询延迟设置
             query_delay = self.tiku_config.get("delay", 0)
             
-            # 初始化超星实例
-            self.chaoxing = Chaoxing(account=self.account, tiku=self.tiku, query_delay=query_delay)
+            # 初始化超星实例（传入进度回调）
+            self.chaoxing = Chaoxing(
+                account=self.account, 
+                tiku=self.tiku, 
+                progress_callback=self._on_video_progress,
+                query_delay=query_delay
+            )
             
             # 执行登录
             login_result = self.chaoxing.login(login_with_cookies=False)

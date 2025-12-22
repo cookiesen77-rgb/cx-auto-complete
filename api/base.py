@@ -111,7 +111,7 @@ class StudyResult(Enum):
         return self != StudyResult.SUCCESS
 
 class Chaoxing:
-    def __init__(self, account: Account = None, tiku: Tiku = None, **kwargs):
+    def __init__(self, account: Account = None, tiku: Tiku = None, progress_callback=None, **kwargs):
         self.account = account
         self.cipher = AESCipher()
         self.tiku = tiku
@@ -119,6 +119,7 @@ class Chaoxing:
         self.rollback_times = 0
         self.rate_limiter = RateLimiter(0.5) # 其他接口速率限制比较松
         self.video_log_limiter = RateLimiter(2) # 上报进度极其容易卡验证码，限制2s一次
+        self.progress_callback = progress_callback  # Web进度回调
 
     def login(self, login_with_cookies=False):
         if login_with_cookies:
@@ -471,6 +472,15 @@ class Chaoxing:
         wait_time = int(random.uniform(30, 90))
 
         logger.info(f"开始任务: {_job['name']}, 总时长: {duration}s, 已进行: {play_time}s")
+        
+        # 发送Web进度回调
+        if self.progress_callback:
+            self.progress_callback({
+                "type": "video_start",
+                "name": _job['name'],
+                "duration": duration,
+                "play_time": play_time
+            })
 
         pbar = tqdm(total=duration, initial=play_time, desc=_job["name"],
                     unit_scale=True, bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt}')
@@ -527,9 +537,29 @@ class Chaoxing:
 
             pbar.n = int(play_time)
             pbar.refresh()
+            
+            # 发送Web进度回调（每5秒更新一次，避免过于频繁）
+            if self.progress_callback and int(play_time) % 5 == 0:
+                percent = int(play_time / duration * 100) if duration > 0 else 0
+                self.progress_callback({
+                    "type": "video_progress",
+                    "name": _job['name'],
+                    "duration": duration,
+                    "play_time": int(play_time),
+                    "percent": percent
+                })
+            
             time.sleep(gc.THRESHOLD)
 
         logger.info("任务完成: {}", _job['name'])
+        
+        # 发送完成回调
+        if self.progress_callback:
+            self.progress_callback({
+                "type": "video_complete",
+                "name": _job['name'],
+                "duration": duration
+            })
         return StudyResult.SUCCESS
 
     def study_document(self, _course, _job) -> StudyResult:
