@@ -76,10 +76,10 @@ function showToast(message, type = 'info') {
     toast.className = `toast ${type}`;
     
     const icons = {
-        success: '✅',
-        warning: '⚠️',
-        error: '❌',
-        info: '💡'
+        success: '✓',
+        warning: '!',
+        error: '✗',
+        info: '→'
     };
     
     toast.innerHTML = `
@@ -89,10 +89,11 @@ function showToast(message, type = 'info') {
     
     DOM.toastContainer.appendChild(toast);
     
+    // 像素风格：使用 translate 动画
     setTimeout(() => {
         toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100px)';
-        setTimeout(() => toast.remove(), 300);
+        toast.style.transform = 'translateX(20px)';
+        setTimeout(() => toast.remove(), 200);
     }, 3000);
 }
 
@@ -486,14 +487,24 @@ function initEventListeners() {
     // 刷新课程
     DOM.refreshCoursesBtn.addEventListener('click', fetchCourses);
     
-    // 速度选择
-    document.querySelectorAll('.speed-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
+    // 速度选择（用事件委托，避免后续 DOM 更新导致监听丢失）
+    const speedSelector = document.querySelector('.speed-selector');
+    if (speedSelector) {
+        speedSelector.addEventListener('click', (e) => {
+            const target = e.target;
+            if (!(target instanceof HTMLElement)) return;
+            const btn = target.closest('.speed-btn');
+            if (!(btn instanceof HTMLButtonElement)) return;
+
             document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-            AppState.settings.speed = parseFloat(btn.dataset.speed);
+
+            const nextSpeed = Number.parseFloat(btn.dataset.speed || '');
+            if (!Number.isFinite(nextSpeed)) return;
+            AppState.settings.speed = nextSpeed;
+            addLog('info', `播放速度已设置为 ${nextSpeed}x`);
         });
-    });
+    }
     
     // 自动提交开关
     DOM.autoSubmit.addEventListener('change', (e) => {

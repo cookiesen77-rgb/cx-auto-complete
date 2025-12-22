@@ -5,24 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>超星学习通 · 自动化助手</title>
     <link rel="stylesheet" href="/static/css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="/static/icon.png" type="image/png">
 </head>
 <body>
-    <!-- 背景装饰 -->
-    <div class="bg-decoration">
-        <div class="gradient-orb orb-1"></div>
-        <div class="gradient-orb orb-2"></div>
-        <div class="gradient-orb orb-3"></div>
-        <div class="grid-pattern"></div>
-    </div>
-
     <div class="app-container">
-        <!-- 头部 -->
+        <!-- ======== Header ======== -->
         <header class="app-header">
             <div class="logo">
-                <span class="logo-icon">⚡</span>
-                <span class="logo-text">超星学习通</span>
-                <span class="logo-badge">Web</span>
+                <span class="logo-icon">🐕</span>
+                <span class="logo-text">超星学习通助手</span>
+                <span class="logo-badge">WEB</span>
             </div>
             <div class="header-status" id="connectionStatus">
                 <span class="status-dot"></span>
@@ -30,15 +22,15 @@
             </div>
         </header>
 
-        <!-- 主内容区 -->
+        <!-- ======== Main Content ======== -->
         <main class="main-content">
-            <!-- 左侧面板 - 控制区 -->
+            <!-- Left Panel: Controls -->
             <aside class="control-panel">
-                <!-- 登录卡片 -->
+                <!-- Login Card -->
                 <section class="card login-card" id="loginSection">
                     <div class="card-header">
                         <h2>账号登录</h2>
-                        <span class="card-icon">🔐</span>
+                        <span class="card-icon">🔑</span>
                     </div>
                     <div class="card-body">
                         <form id="loginForm">
@@ -51,38 +43,38 @@
                                 <input type="password" id="password" placeholder="请输入登录密码" autocomplete="off">
                             </div>
                             <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
-                                <span class="btn-text">登 录</span>
+                                <span class="btn-text">LOGIN</span>
                                 <span class="btn-loader"></span>
                             </button>
                         </form>
                     </div>
                 </section>
 
-                <!-- 用户信息卡片 (登录后显示) -->
+                <!-- User Info Card (shown after login) -->
                 <section class="card user-card hidden" id="userSection">
                     <div class="card-header">
                         <h2>已登录</h2>
-                        <span class="card-icon">✅</span>
+                        <span class="card-icon">✓</span>
                     </div>
                     <div class="card-body">
                         <div class="user-info">
-                            <div class="avatar">👤</div>
+                            <div class="avatar">🐕</div>
                             <div class="user-details">
                                 <span class="user-name" id="userName">-</span>
-                                <span class="user-status">在线</span>
+                                <span class="user-status">● 在线</span>
                             </div>
                         </div>
                         <button class="btn btn-outline btn-block" id="refreshCoursesBtn">
-                            <span>🔄</span> 刷新课程列表
+                            REFRESH
                         </button>
                     </div>
                 </section>
 
-                <!-- 任务设置卡片 -->
+                <!-- Settings Card -->
                 <section class="card settings-card hidden" id="settingsSection">
                     <div class="card-header">
                         <h2>任务设置</h2>
-                        <span class="card-icon">⚙️</span>
+                        <span class="card-icon">⚙</span>
                     </div>
                     <div class="card-body">
                         <div class="setting-item">
@@ -105,42 +97,42 @@
                         </div>
                         <div class="setting-info">
                             <span class="info-icon">💡</span>
-                            <span>关闭自动提交时，答案仅保存不提交</span>
+                            <span>关闭时答案仅保存不提交</span>
                         </div>
                     </div>
                 </section>
 
-                <!-- 任务控制卡片 -->
+                <!-- Action Card -->
                 <section class="card action-card hidden" id="actionSection">
                     <div class="card-body">
                         <button class="btn btn-success btn-block btn-lg" id="startTaskBtn" disabled>
                             <span class="btn-icon">▶</span>
-                            <span class="btn-text">开始学习</span>
+                            <span class="btn-text">START</span>
                         </button>
-                        <button class="btn btn-danger btn-block hidden" id="stopTaskBtn">
-                            <span class="btn-icon">⏹</span>
-                            <span class="btn-text">停止任务</span>
+                        <button class="btn btn-danger btn-block btn-lg hidden" id="stopTaskBtn">
+                            <span class="btn-icon">■</span>
+                            <span class="btn-text">STOP</span>
                         </button>
                     </div>
                 </section>
 
-                <!-- AI 配置按钮 -->
+                <!-- AI Config Button -->
                 <section class="card ai-config-btn-card">
                     <div class="card-body">
                         <button class="btn btn-outline btn-block" id="openAiConfigBtn">
-                            <span>🤖</span> AI 答题配置
+                            🤖 AI CONFIG
                         </button>
                     </div>
                 </section>
             </aside>
 
-            <!-- 中间区域 - 课程列表 -->
+            <!-- Center Panel: Courses -->
             <section class="courses-panel">
                 <div class="panel-header">
-                    <h2>📚 课程列表</h2>
+                    <h2>📚 COURSES</h2>
                     <div class="panel-actions">
-                        <button class="btn btn-sm" id="selectAllBtn" disabled>全选</button>
-                        <button class="btn btn-sm" id="deselectAllBtn" disabled>取消全选</button>
+                        <button class="btn btn-sm" id="selectAllBtn" disabled>ALL</button>
+                        <button class="btn btn-sm" id="deselectAllBtn" disabled>NONE</button>
                         <span class="selected-count" id="selectedCount">已选: 0</span>
                     </div>
                 </div>
@@ -158,12 +150,12 @@
                 </div>
             </section>
 
-            <!-- 右侧面板 - 日志和进度 -->
+            <!-- Right Panel: Logs & Progress -->
             <aside class="log-panel">
-                <!-- 进度卡片 -->
+                <!-- Progress Card -->
                 <section class="card progress-card hidden" id="progressSection">
                     <div class="card-header">
-                        <h2>任务进度</h2>
+                        <h2>PROGRESS</h2>
                         <span class="progress-percent" id="progressPercent">0%</span>
                     </div>
                     <div class="card-body">
@@ -177,11 +169,11 @@
                     </div>
                 </section>
 
-                <!-- 日志卡片 -->
+                <!-- Log Card -->
                 <section class="card log-card">
                     <div class="card-header">
-                        <h2>运行日志</h2>
-                        <button class="btn btn-sm btn-ghost" id="clearLogBtn">清空</button>
+                        <h2>LOGS</h2>
+                        <button class="btn btn-sm btn-ghost" id="clearLogBtn">CLEAR</button>
                     </div>
                     <div class="card-body">
                         <div class="log-container" id="logContainer">
@@ -194,17 +186,16 @@
                 </section>
             </aside>
         </main>
-
     </div>
 
-    <!-- Toast 通知 -->
+    <!-- Toast Container -->
     <div class="toast-container" id="toastContainer"></div>
 
-    <!-- AI 配置弹窗 -->
+    <!-- AI Config Modal -->
     <div class="modal-overlay hidden" id="aiConfigModal">
         <div class="modal">
             <div class="modal-header">
-                <h3>🤖 AI 答题配置</h3>
+                <h3>🤖 AI CONFIG</h3>
                 <button class="modal-close" id="closeAiConfigBtn">&times;</button>
             </div>
             <div class="modal-body">
@@ -222,7 +213,7 @@
                     <div class="form-group">
                         <label for="aiEndpoint">API Endpoint</label>
                         <input type="text" id="aiEndpoint" placeholder="https://api.openai.com/v1">
-                        <span class="form-hint">OpenAI 兼容接口地址，需包含 /v1</span>
+                        <span class="form-hint">OpenAI 兼容接口地址</span>
                     </div>
                     <div class="form-group">
                         <label for="aiKey">API Key</label>
@@ -258,13 +249,13 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline" id="testAiConfigBtn">
-                    <span class="btn-text">🔌 测试连接</span>
+                    <span class="btn-text">🔌 TEST</span>
                     <span class="btn-loader"></span>
                 </button>
                 <div class="footer-spacer"></div>
-                <button class="btn btn-outline" id="cancelAiConfigBtn">取消</button>
+                <button class="btn btn-outline" id="cancelAiConfigBtn">CANCEL</button>
                 <button class="btn btn-primary" id="saveAiConfigBtn">
-                    <span class="btn-text">保存配置</span>
+                    <span class="btn-text">SAVE</span>
                     <span class="btn-loader"></span>
                 </button>
             </div>

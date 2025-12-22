@@ -1,0 +1,150 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build macOS App
+        run: |
+          pyinstaller --name "超星学习通助手" \
+            --windowed \
+            --add-data "templates:templates" \
+            --add-data "static:static" \
+            --add-data "resource:resource" \
+            --add-data "resources:resources" \
+            --icon "resources/icon.png" \
+            --noconfirm \
+            web_app.py
+
+      - name: Create DMG
+        run: |
+          cd dist
+          hdiutil create -volname "超星学习通助手" -srcfolder "超星学习通助手.app" -ov -format UDZO "超星学习通助手-macOS.dmg"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: dist/超星学习通助手-macOS.dmg
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build Windows EXE
+        run: |
+          pyinstaller --name "超星学习通助手" `
+            --windowed `
+            --add-data "templates;templates" `
+            --add-data "static;static" `
+            --add-data "resource;resource" `
+            --add-data "resources;resources" `
+            --icon "resources/icon.png" `
+            --noconfirm `
+            web_app.py
+
+      - name: Create ZIP
+        run: |
+          cd dist
+          Compress-Archive -Path "超星学习通助手" -DestinationPath "超星学习通助手-Windows.zip"
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-app
+          path: dist/超星学习通助手-Windows.zip
+
+  release:
+    needs: [build-macos, build-windows]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+    steps:
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-app
+          path: ./artifacts
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-app
+          path: ./artifacts
+
+      - name: Get version
+        id: get_version
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.version }}
+          name: 超星学习通助手 ${{ steps.get_version.outputs.version }}
+          body: |
+            ## 🐕 超星学习通自动化助手
+            
+            ### 📦 下载说明
+            - **macOS**: 下载 `.dmg` 文件，双击安装
+            - **Windows**: 下载 `.zip` 文件，解压后运行 `超星学习通助手.exe`
+            
+            ### ✨ 功能特性
+            - Web 可视化界面
+            - AI 智能答题
+            - 多题库支持
+            - 自动完成任务点
+            
+            ### ⚠️ 免责声明
+            本项目仅供学习交流使用
+          files: |
+            ./artifacts/超星学习通助手-macOS.dmg
+            ./artifacts/超星学习通助手-Windows.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
