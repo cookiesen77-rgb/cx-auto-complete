@@ -730,6 +730,19 @@ def run_task_in_process(username: str, password: str, courses: List[Dict],
         except:
             pass
     
+    # 添加 loguru 日志处理器，将日志转发到队列
+    def queue_sink(message):
+        record = message.record
+        level_map = {"DEBUG": "info", "INFO": "info", "SUCCESS": "success", 
+                     "WARNING": "warning", "ERROR": "error", "CRITICAL": "error"}
+        level = level_map.get(record["level"].name, "info")
+        text = record["message"]
+        send_log(level, text)
+    
+    # 移除默认处理器，添加队列处理器
+    logger.remove()
+    logger.add(queue_sink, level="INFO")
+    
     try:
         send_log("info", "正在初始化任务...")
         
