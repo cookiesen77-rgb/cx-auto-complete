@@ -762,11 +762,37 @@ def run_task_in_process(username: str, password: str, courses: List[Dict],
         # 获取查询延迟设置
         query_delay = tiku_config.get("delay", 0)
         
+        # 视频进度回调
+        def on_video_progress(data):
+            try:
+                progress_type = data.get("type", "")
+                name = data.get("name", "")
+                duration = data.get("duration", 0)
+                play_time = data.get("play_time", 0)
+                percent = data.get("percent", 0)
+                
+                def format_time(seconds):
+                    m, s = divmod(int(seconds), 60)
+                    return f"{m:02d}:{s:02d}"
+                
+                if progress_type == "video_start":
+                    send_log("info", f"▶ 开始播放: {name} ({format_time(play_time)}/{format_time(duration)})")
+                elif progress_type == "video_progress":
+                    bar_len = 20
+                    filled = int(bar_len * percent / 100)
+                    bar = "█" * filled + "░" * (bar_len - filled)
+                    send_log("info", f"📹 {name}: [{bar}] {percent}% ({format_time(play_time)}/{format_time(duration)})")
+                elif progress_type == "video_complete":
+                    send_log("success", f"✅ 完成: {name}")
+            except:
+                pass
+        
         # 初始化超星实例
         chaoxing = Chaoxing(
             account=account,
             tiku=tiku,
-            query_delay=query_delay
+            query_delay=query_delay,
+            progress_callback=on_video_progress
         )
         
         # 登录
