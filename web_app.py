@@ -5,6 +5,8 @@ import os
 import sys
 import json
 import threading
+import multiprocessing
+import signal
 import time
 import queue
 import traceback
@@ -64,10 +66,13 @@ class WebTaskManager:
         self.tiku_config: Dict = {}
         self.notification_config: Dict = {}
         self.is_logged_in: bool = False
-        self.current_task: Optional[threading.Thread] = None
+        self.current_process: Optional[multiprocessing.Process] = None
         self.task_running: bool = False
         self.should_stop: bool = False
         self.log_queue: queue.Queue = queue.Queue()
+        # 保存登录凭证用于子进程
+        self._username: Optional[str] = None
+        self._password: Optional[str] = None
         self._load_config()
         
     def _load_config(self):
@@ -132,6 +137,10 @@ class WebTaskManager:
         """执行登录"""
         try:
             self._emit_log("info", f"正在登录账号: {username[:3]}****{username[-4:]}")
+            
+            # 保存凭证用于子进程
+            self._username = username
+            self._password = password
             
             # 创建账号对象
             self.account = Account(username, password)
@@ -236,13 +245,23 @@ class WebTaskManager:
         self.should_stop = False
         self.task_running = True
         
-        # 在后台线程执行任务
-        self.current_task = threading.Thread(
-            target=self._run_task,
-            args=(selected_courses, auto_submit, speed),
+        # 在子进程中执行任务（可以直接 terminate 杀死）
+        self.current_process = multiprocessing.Process(
+            target=run_task_in_process,
+            args=(
+                self._username,
+                self._password,
+                selected_courses,
+                self.tiku_config,
+                auto_submit,
+                speed
+            ),
             daemon=True
         )
-        self.current_task.start()
+        self.current_process.start()
+        
+        # 启动监控线程，监控子进程状态
+        threading.Thread(target=self._monitor_process, daemon=True).start()
         
         return {"success": True, "message": f"开始执行 {len(selected_courses)} 门课程"}
     
@@ -338,14 +357,49 @@ class WebTaskManager:
         # 调用原有的处理函数
         process_course(self.chaoxing, course, config)
     
+    def _monitor_process(self):
+        """监控子进程状态"""
+        if self.current_process:
+            self.current_process.join()  # 等待进程结束
+            exit_code = self.current_process.exitcode
+            
+            if self.should_stop:
+                self._emit_log("info", "任务已被强制停止")
+                self._emit_status("task_stopped")
+            elif exit_code == 0:
+                self._emit_log("success", "所有任务执行完成!")
+                self._emit_status("task_completed")
+            else:
+                self._emit_log("error", f"任务异常退出 (code: {exit_code})")
+                self._emit_status("task_error", {"error": f"进程异常退出: {exit_code}"})
+            
+            self.task_running = False
+            self.should_stop = False
+            self.current_process = None
+    
     def stop_task(self):
-        """停止当前任务"""
-        if self.task_running:
+        """停止当前任务 - 直接终止进程"""
+        if self.task_running and self.current_process:
             self.should_stop = True
-            self._emit_log("warning", "正在停止任务，请等待当前章节完成...")
-            # 立即通知前端状态变化
+            self._emit_log("warning", "正在强制停止任务...")
             self._emit_status("task_stopping")
-            return {"success": True, "message": "正在停止任务"}
+            
+            try:
+                # 直接终止进程
+                self.current_process.terminate()
+                # 等待最多2秒
+                self.current_process.join(timeout=2)
+                
+                # 如果还没结束，强制杀死
+                if self.current_process.is_alive():
+                    self.current_process.kill()
+                    self.current_process.join(timeout=1)
+                
+                self._emit_log("success", "任务已强制停止")
+                return {"success": True, "message": "任务已停止"}
+            except Exception as e:
+                self._emit_log("error", f"停止任务失败: {e}")
+                return {"success": False, "message": str(e)}
         return {"success": False, "message": "没有运行中的任务"}
     
     def get_status(self) -> Dict:
@@ -625,6 +679,68 @@ def handle_connect():
 def handle_disconnect():
     """客户端断开"""
     pass
+
+
+# ============ 独立进程任务函数 ============
+
+def run_task_in_process(username: str, password: str, courses: List[Dict], 
+                        tiku_config: Dict, auto_submit: bool, speed: float):
+    """在独立进程中执行任务（可被 terminate 直接杀死）"""
+    try:
+        # 重新初始化所有对象（进程间不共享内存）
+        account = Account(username, password)
+        
+        # 初始化题库
+        tiku = Tiku()
+        tiku.config_set(tiku_config)
+        tiku = tiku.get_tiku_from_config()
+        tiku.init_tiku()
+        tiku.SUBMIT = auto_submit
+        
+        # 获取查询延迟设置
+        query_delay = tiku_config.get("delay", 0)
+        
+        # 初始化超星实例
+        chaoxing = Chaoxing(
+            account=account,
+            tiku=tiku,
+            query_delay=query_delay
+        )
+        
+        # 登录
+        login_result = chaoxing.login(login_with_cookies=False)
+        if not login_result["status"]:
+            logger.error(f"子进程登录失败: {login_result['msg']}")
+            sys.exit(1)
+        
+        logger.info("子进程登录成功，开始执行任务...")
+        
+        # 构建任务配置
+        task_config = {
+            "speed": speed,
+            "jobs": 4,
+            "notopen_action": "retry"
+        }
+        
+        # 执行每个课程
+        for idx, course in enumerate(courses, 1):
+            course_title = course.get('title', '未知课程')
+            logger.info(f"[{idx}/{len(courses)}] 开始学习: {course_title}")
+            
+            try:
+                process_course(chaoxing, course, task_config)
+                logger.info(f"课程 '{course_title}' 学习完成")
+            except Exception as e:
+                logger.error(f"课程 '{course_title}' 学习失败: {e}")
+                traceback.print_exc()
+        
+        logger.info("所有任务执行完成!")
+        sys.exit(0)
+        
+    except Exception as e:
+        logger.error(f"任务执行异常: {e}")
+        traceback.print_exc()
+        sys.exit(1)
 
 
 # ============ 入口 ============
