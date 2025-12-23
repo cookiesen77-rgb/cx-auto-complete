@@ -245,6 +245,14 @@ class WebTaskManager:
         self.should_stop = False
         self.task_running = True
         
+        # 创建进程间通信队列
+        self.log_queue = multiprocessing.Queue()
+        
+        # 立即发送任务开始状态
+        self._emit_status("task_started", {"total": len(selected_courses)})
+        self._emit_log("info", f"开始执行 {len(selected_courses)} 门课程...")
+        self._emit_log("info", f"答题模式: {'自动提交' if auto_submit else '手动保存'}")
+        
         # 在子进程中执行任务（可以直接 terminate 杀死）
         self.current_process = multiprocessing.Process(
             target=run_task_in_process,
@@ -254,11 +262,15 @@ class WebTaskManager:
                 selected_courses,
                 self.tiku_config,
                 auto_submit,
-                speed
+                speed,
+                self.log_queue  # 传递日志队列
             ),
             daemon=True
         )
         self.current_process.start()
+        
+        # 启动日志转发线程
+        threading.Thread(target=self._forward_logs, daemon=True).start()
         
         # 启动监控线程，监控子进程状态
         threading.Thread(target=self._monitor_process, daemon=True).start()
@@ -357,11 +369,34 @@ class WebTaskManager:
         # 调用原有的处理函数
         process_course(self.chaoxing, course, config)
     
+    def _forward_logs(self):
+        """转发子进程日志到前端"""
+        while self.task_running:
+            try:
+                # 从队列获取日志（超时0.5秒）
+                log_entry = self.log_queue.get(timeout=0.5)
+                if log_entry:
+                    level = log_entry.get("level", "info")
+                    message = log_entry.get("message", "")
+                    self._emit_log(level, message)
+            except:
+                # 队列为空或超时，继续循环
+                pass
+    
     def _monitor_process(self):
         """监控子进程状态"""
         if self.current_process:
             self.current_process.join()  # 等待进程结束
             exit_code = self.current_process.exitcode
+            
+            # 清空剩余日志
+            try:
+                while not self.log_queue.empty():
+                    log_entry = self.log_queue.get_nowait()
+                    if log_entry:
+                        self._emit_log(log_entry.get("level", "info"), log_entry.get("message", ""))
+            except:
+                pass
             
             if self.should_stop:
                 self._emit_log("info", "任务已被强制停止")
@@ -684,9 +719,20 @@ def handle_disconnect():
 # ============ 独立进程任务函数 ============
 
 def run_task_in_process(username: str, password: str, courses: List[Dict], 
-                        tiku_config: Dict, auto_submit: bool, speed: float):
+                        tiku_config: Dict, auto_submit: bool, speed: float,
+                        log_queue: multiprocessing.Queue):
     """在独立进程中执行任务（可被 terminate 直接杀死）"""
+    
+    def send_log(level: str, message: str):
+        """发送日志到队列"""
+        try:
+            log_queue.put({"level": level, "message": message})
+        except:
+            pass
+    
     try:
+        send_log("info", "正在初始化任务...")
+        
         # 重新初始化所有对象（进程间不共享内存）
         account = Account(username, password)
         
@@ -696,6 +742,9 @@ def run_task_in_process(username: str, password: str, courses: List[Dict],
         tiku = tiku.get_tiku_from_config()
         tiku.init_tiku()
         tiku.SUBMIT = auto_submit
+        
+        tiku_name = tiku.name if hasattr(tiku, 'name') and tiku.name else '已禁用'
+        send_log("info", f"题库: {tiku_name}")
         
         # 获取查询延迟设置
         query_delay = tiku_config.get("delay", 0)
@@ -708,12 +757,13 @@ def run_task_in_process(username: str, password: str, courses: List[Dict],
         )
         
         # 登录
+        send_log("info", "正在登录...")
         login_result = chaoxing.login(login_with_cookies=False)
         if not login_result["status"]:
-            logger.error(f"子进程登录失败: {login_result['msg']}")
+            send_log("error", f"登录失败: {login_result['msg']}")
             sys.exit(1)
         
-        logger.info("子进程登录成功，开始执行任务...")
+        send_log("success", "登录成功，开始执行任务...")
         
         # 构建任务配置
         task_config = {
@@ -723,22 +773,30 @@ def run_task_in_process(username: str, password: str, courses: List[Dict],
         }
         
         # 执行每个课程
+        total_courses = len(courses)
         for idx, course in enumerate(courses, 1):
             course_title = course.get('title', '未知课程')
-            logger.info(f"[{idx}/{len(courses)}] 开始学习: {course_title}")
+            send_log("info", f"[{idx}/{total_courses}] 开始学习: {course_title}")
             
             try:
+                # 获取章节数量
+                point_list = chaoxing.get_course_point(
+                    course["courseId"], course["clazzId"], course["cpi"]
+                )
+                total_points = len(point_list.get("points", []))
+                send_log("info", f"共 {total_points} 个章节")
+                
                 process_course(chaoxing, course, task_config)
-                logger.info(f"课程 '{course_title}' 学习完成")
+                send_log("success", f"课程 '{course_title}' 学习完成")
             except Exception as e:
-                logger.error(f"课程 '{course_title}' 学习失败: {e}")
+                send_log("error", f"课程 '{course_title}' 学习失败: {e}")
                 traceback.print_exc()
         
-        logger.info("所有任务执行完成!")
+        send_log("success", "所有任务执行完成!")
         sys.exit(0)
         
     except Exception as e:
-        logger.error(f"任务执行异常: {e}")
+        send_log("error", f"任务执行异常: {e}")
         traceback.print_exc()
         sys.exit(1)
 
