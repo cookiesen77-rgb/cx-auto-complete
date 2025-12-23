@@ -111,7 +111,7 @@ class StudyResult(Enum):
         return self != StudyResult.SUCCESS
 
 class Chaoxing:
-    def __init__(self, account: Account = None, tiku: Tiku = None, progress_callback=None, **kwargs):
+    def __init__(self, account: Account = None, tiku: Tiku = None, progress_callback=None, should_stop_callback=None, **kwargs):
         self.account = account
         self.cipher = AESCipher()
         self.tiku = tiku
@@ -120,6 +120,13 @@ class Chaoxing:
         self.rate_limiter = RateLimiter(0.5) # 其他接口速率限制比较松
         self.video_log_limiter = RateLimiter(2) # 上报进度极其容易卡验证码，限制2s一次
         self.progress_callback = progress_callback  # Web进度回调
+        self.should_stop_callback = should_stop_callback  # 停止检查回调
+    
+    def check_should_stop(self) -> bool:
+        """检查是否应该停止任务"""
+        if self.should_stop_callback and callable(self.should_stop_callback):
+            return self.should_stop_callback()
+        return False
 
     def login(self, login_with_cookies=False):
         if login_with_cookies:
@@ -496,6 +503,12 @@ class Chaoxing:
             return StudyResult.SUCCESS
 
         while not passed:
+            # 检查是否应该停止任务
+            if self.check_should_stop():
+                logger.info("收到停止信号，终止视频任务: {}", _job['name'])
+                pbar.close()
+                return StudyResult.ERROR
+            
             # Sometimes the last request needs to be sent several times to complete the task
             if play_time - last_log_time >= wait_time or play_time == duration:
 
@@ -598,6 +611,11 @@ class Chaoxing:
         # FIXME: 这一块可以单独搞一个类出来了，方法里面又套方法，每一次调用都会创建新的方法，十分浪费
         if self.tiku.DISABLE or not self.tiku:
             return StudyResult.SUCCESS
+        
+        # 检查是否应该停止任务
+        if self.check_should_stop():
+            logger.info("收到停止信号，跳过答题任务")
+            return StudyResult.ERROR
         _ORIGIN_HTML_CONTENT = ""  # 用于配合输出网页源码, 帮助修复#391错误
 
         def random_answer(options: str) -> str:
@@ -795,6 +813,11 @@ class Chaoxing:
         total_questions = len(questions["questions"])
         found_answers = 0
         for q in questions["questions"]:
+            # 检查是否应该停止任务
+            if self.check_should_stop():
+                logger.info("收到停止信号，终止答题任务")
+                return StudyResult.ERROR
+            
             logger.debug(f"当前题目信息 -> {q}")
             # 添加搜题延迟 #428 - 默认0s延迟
             query_delay = self.kwargs.get("query_delay", 0)

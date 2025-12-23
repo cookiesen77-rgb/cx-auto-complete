@@ -145,11 +145,12 @@ class WebTaskManager:
             # 获取查询延迟设置
             query_delay = self.tiku_config.get("delay", 0)
             
-            # 初始化超星实例（传入进度回调）
+            # 初始化超星实例（传入进度回调和停止检查回调）
             self.chaoxing = Chaoxing(
                 account=self.account, 
                 tiku=self.tiku, 
                 progress_callback=self._on_video_progress,
+                should_stop_callback=lambda: self.should_stop,
                 query_delay=query_delay
             )
             
@@ -217,6 +218,20 @@ class WebTaskManager:
         
         if not selected_courses:
             return {"success": False, "message": "请选择至少一门课程"}
+        
+        # 重新加载配置并初始化题库（确保使用最新的 AI 配置）
+        try:
+            self._load_config()
+            self.tiku = Tiku()
+            self.tiku.config_set(self.tiku_config)
+            self.tiku = self.tiku.get_tiku_from_config()
+            self.tiku.init_tiku()
+            # 更新 chaoxing 实例的题库引用
+            if self.chaoxing:
+                self.chaoxing.tiku = self.tiku
+            self._emit_log("info", f"题库已刷新: {self.tiku.name if hasattr(self.tiku, 'name') and self.tiku.name else '已禁用'}")
+        except Exception as e:
+            self._emit_log("warning", f"题库初始化失败: {e}，将继续执行任务")
         
         self.should_stop = False
         self.task_running = True
